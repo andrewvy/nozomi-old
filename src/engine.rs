@@ -1,3 +1,6 @@
+use std::time::SystemTime;
+
+use crate::core::order_book::OrderBook;
 use crate::core::orders::{Order, OrderRequest, OrderType, Side};
 
 use axiom::prelude::*;
@@ -9,15 +12,25 @@ pub enum Symbol {
     ABC,
 }
 
-pub struct Data {
-    orders: Vec<OrderRequest<Symbol>>,
+#[derive(Serialize, Deserialize, Copy, Clone, Debug)]
+pub enum OrderBookCommands {
+    NewRequest(OrderRequest<Symbol>),
+    LogCurrentSpread,
 }
 
-impl Data {
-    fn handle_new_order_request(mut self, request: OrderRequest<Symbol>) -> ActorResult<Self> {
-        dbg!(request);
+pub struct OrderBookActor {
+    order_book: OrderBook<Symbol>,
+}
 
-        self.orders.push(request);
+impl OrderBookActor {
+    fn handle_new_order_request(mut self, request: OrderRequest<Symbol>) -> ActorResult<Self> {
+        self.order_book.handle_request(request);
+
+        Ok(Status::done(self))
+    }
+
+    fn log_current_spread(mut self) -> ActorResult<Self> {
+        dbg!(self.order_book.current_spread());
 
         Ok(Status::done(self))
     }
@@ -26,10 +39,6 @@ impl Data {
         if let Some(sys_msg) = message.content_as::<SystemMsg>() {
             match &*sys_msg {
                 SystemMsg::Start => {}
-
-                // This code runs each time a monitored `Game` actor stops. Once all the actors are
-                // finished, the average final results of each game will be printed and then the
-                // actor system will be shut down.
                 SystemMsg::Stopped { .. } => {}
                 _ => {}
             }
@@ -37,6 +46,11 @@ impl Data {
 
         if let Some(msg) = message.content_as::<OrderRequest<Symbol>>() {
             self.handle_new_order_request(*msg)
+        } else if let Some(msg) = message.content_as::<OrderBookCommands>() {
+            match *msg {
+                OrderBookCommands::NewRequest(request) => self.handle_new_order_request(request),
+                OrderBookCommands::LogCurrentSpread => self.log_current_spread(),
+            }
         } else {
             Ok(Status::done(self))
         }
@@ -46,19 +60,19 @@ impl Data {
 pub fn start() {
     let system = ActorSystem::create(ActorSystemConfig::default().thread_pool_size(2));
 
-    let data = Data {
-        orders: Vec::with_capacity(50),
+    let order_book_actor = OrderBookActor {
+        order_book: OrderBook::new(Symbol::ABC, Symbol::USD),
     };
 
     let aid = system
         .spawn()
         .name("USD/ABC")
-        .with(data, Data::handle)
+        .with(order_book_actor, OrderBookActor::handle)
         .unwrap();
 
-    let order_request = OrderRequest {
+    let bid = OrderRequest {
         order: Order {
-            order_id: 1,
+            id: 1,
             order_symbol: Symbol::ABC,
             price_symbol: Symbol::USD,
             side: Side::Bid,
@@ -66,9 +80,49 @@ pub fn start() {
             quantity: 1,
         },
         order_type: OrderType::Market,
+        timestamp: SystemTime::now(),
     };
 
-    aid.send(Message::new(order_request)).unwrap();
+    let ask = OrderRequest {
+        order: Order {
+            id: 2,
+            order_symbol: Symbol::ABC,
+            price_symbol: Symbol::USD,
+            side: Side::Ask,
+            price: 2_0000,
+            quantity: 2,
+        },
+        order_type: OrderType::Market,
+        timestamp: SystemTime::now(),
+    };
+
+    aid.send(Message::new(OrderBookCommands::NewRequest(bid)))
+        .unwrap();
+
+    aid.send(Message::new(OrderBookCommands::NewRequest(ask)))
+        .unwrap();
+
+    aid.send(Message::new(OrderBookCommands::LogCurrentSpread))
+        .unwrap();
+
+    let new_ask = OrderRequest {
+        order: Order {
+            id: 3,
+            order_symbol: Symbol::ABC,
+            price_symbol: Symbol::USD,
+            side: Side::Ask,
+            price: 1_5000,
+            quantity: 2,
+        },
+        order_type: OrderType::Market,
+        timestamp: SystemTime::now(),
+    };
+
+    aid.send(Message::new(OrderBookCommands::NewRequest(new_ask)))
+        .unwrap();
+
+    aid.send(Message::new(OrderBookCommands::LogCurrentSpread))
+        .unwrap();
 
     system.await_shutdown(None);
 }
