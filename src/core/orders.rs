@@ -27,5 +27,7 @@ pub struct Order<Symbol> {
 pub struct OrderRequest<Symbol> {
     pub order: Order<Symbol>,
     pub order_type: OrderType,
+
+    // @todo(vy): monotonic clock
     pub timestamp: SystemTime,
 }

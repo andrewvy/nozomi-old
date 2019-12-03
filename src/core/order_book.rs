@@ -8,6 +8,8 @@ use crate::core::orders::{Order, OrderRequest, Side};
 struct OrderIndex {
     id: u64,
     price: u64,
+
+    // @todo(vy): monotonic clock
     timestamp: SystemTime,
     order_side: Side,
 }
