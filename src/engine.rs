@@ -24,7 +24,7 @@ pub struct OrderBookActor {
 
 impl OrderBookActor {
     fn handle_new_order_request(mut self, request: OrderRequest<Symbol>) -> ActorResult<Self> {
-        self.order_book.handle_request(request);
+        dbg!(self.order_book.handle_request(request));
 
         Ok(Status::done(self))
     }
@@ -79,7 +79,7 @@ pub fn start() {
             price: 1_0000,
             quantity: 1,
         },
-        order_type: OrderType::Market,
+        order_type: OrderType::Limit,
         timestamp: SystemTime::now(),
     };
 
@@ -92,18 +92,16 @@ pub fn start() {
             price: 2_0000,
             quantity: 2,
         },
-        order_type: OrderType::Market,
+        order_type: OrderType::Limit,
         timestamp: SystemTime::now(),
     };
 
-    aid.send(Message::new(OrderBookCommands::NewRequest(bid)))
-        .unwrap();
+    aid.send_new(OrderBookCommands::NewRequest(bid)).unwrap();
 
-    aid.send(Message::new(OrderBookCommands::NewRequest(ask)))
-        .unwrap();
+    aid.send_new(OrderBookCommands::NewRequest(ask)).unwrap();
 
-    aid.send(Message::new(OrderBookCommands::LogCurrentSpread))
-        .unwrap();
+    // Should be (20000, 10000).
+    aid.send_new(OrderBookCommands::LogCurrentSpread).unwrap();
 
     let new_ask = OrderRequest {
         order: Order {
@@ -114,15 +112,34 @@ pub fn start() {
             price: 1_5000,
             quantity: 2,
         },
+        order_type: OrderType::Limit,
+        timestamp: SystemTime::now(),
+    };
+
+    aid.send_new(OrderBookCommands::NewRequest(new_ask))
+        .unwrap();
+
+    // Should now be (15000, 10000).
+    aid.send_new(OrderBookCommands::LogCurrentSpread).unwrap();
+
+    let market_order = OrderRequest {
+        order: Order {
+            id: 3,
+            order_symbol: Symbol::ABC,
+            price_symbol: Symbol::USD,
+            side: Side::Bid,
+            price: 0,
+            quantity: 2,
+        },
         order_type: OrderType::Market,
         timestamp: SystemTime::now(),
     };
 
-    aid.send(Message::new(OrderBookCommands::NewRequest(new_ask)))
+    aid.send_new(OrderBookCommands::NewRequest(market_order))
         .unwrap();
 
-    aid.send(Message::new(OrderBookCommands::LogCurrentSpread))
-        .unwrap();
+    // Should go back to (20000, 10000), since the 15000 ask order was filled by our market order request.
+    aid.send_new(OrderBookCommands::LogCurrentSpread).unwrap();
 
     system.await_shutdown(None);
 }
