@@ -15,7 +15,10 @@ pub enum OrderType {
 }
 
 #[derive(Serialize, Deserialize, Copy, Clone, Debug)]
-pub struct Order<Symbol> {
+pub struct Order<Symbol>
+where
+    Symbol: Copy + std::fmt::Debug,
+{
     pub id: u64,
     pub order_symbol: Symbol,
     pub price_symbol: Symbol,
@@ -25,7 +28,10 @@ pub struct Order<Symbol> {
 }
 
 #[derive(Serialize, Deserialize, Copy, Clone, Debug)]
-pub struct OrderRequest<Symbol> {
+pub struct OrderRequest<Symbol>
+where
+    Symbol: Copy + std::fmt::Debug,
+{
     pub order: Order<Symbol>,
     pub order_type: OrderType,
     pub timestamp: SystemTime,

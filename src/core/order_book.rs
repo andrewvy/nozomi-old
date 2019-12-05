@@ -49,7 +49,10 @@ impl PartialEq for OrderIndex {
 impl Eq for OrderIndex {}
 
 /// Encapsulates a priority queue of Orders, ordered by OrderIndex.
-pub struct OrderQueue<Symbol> {
+pub struct OrderQueue<Symbol>
+where
+    Symbol: Copy + std::fmt::Debug,
+{
     index_queue: BinaryHeap<OrderIndex>,
     orders: HashMap<u64, Order<Symbol>>,
 
@@ -57,7 +60,10 @@ pub struct OrderQueue<Symbol> {
     order_side: Side,
 }
 
-impl<Symbol> OrderQueue<Symbol> {
+impl<Symbol> OrderQueue<Symbol>
+where
+    Symbol: Copy + std::fmt::Debug,
+{
     /// Creates a new OrderQueue.
     pub fn new(side: Side, capacity: usize) -> Self {
         OrderQueue {
@@ -163,7 +169,10 @@ impl<Symbol> OrderQueue<Symbol> {
     }
 }
 
-pub struct OrderBook<Symbol> {
+pub struct OrderBook<Symbol>
+where
+    Symbol: Copy + std::fmt::Debug,
+{
     #[allow(dead_code)]
     order_symbol: Symbol,
 
@@ -219,7 +228,7 @@ where
                         OrderBookResponse::Filled
                     } else if order_request.order.quantity > order.quantity {
                         // Else, this request can only be partially fulfilled.
-                        // @TODO(vy: add order request to orderbook)
+                        // @TODO(vy): add order request to orderbook
                         OrderBookResponse::PartiallyFilled
                     } else {
                         // Or, this request can be perfectly matched to an order.

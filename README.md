@@ -24,3 +24,26 @@ Order functionality:
 - editing limit orders
 - expiring limit orders
 - cancelling limit orders
+
+TODOs:
+
+- Extract OrderBookActor from Engine
+- Add testing of OrderBookActor
+- Add support for partially filled orders
+- Add support for limit orders
+- Add support for grabbing OrderBook data
+- Add support for OrderBookSupervisor (which spawns order book actors for all symbols traded in system)
+- Add data retention if OrderBookActor crashes, or system is turned off. (rocksdb or?)
+
+architecture:
+
+- core::order_book
+- core::orders
+- core::tracker
+
+- engine::actors::{OrderBookActor, OrderBookSupervisor}
+
+upstream:
+
+- Look into implementing monitors/links in Axiom (supervisor primitives)
+- Build supervisor actors from monitor/link primitives

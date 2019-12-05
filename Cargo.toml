@@ -9,3 +9,4 @@ edition = "2018"
 [dependencies]
 axiom = { git = "https://github.com/rsimmonsjr/axiom" }
 serde = "1.0.103"
+secc = "0.0.10"
