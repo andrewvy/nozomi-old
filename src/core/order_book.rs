@@ -184,9 +184,15 @@ where
 }
 
 #[derive(Debug)]
+pub struct Fill {
+    price: u64,
+    quantity: u64,
+}
+
+#[derive(Debug)]
 pub enum OrderBookResponse {
-    Filled,
-    PartiallyFilled,
+    Filled(Vec<Fill>),
+    PartiallyFilled(Vec<Fill>),
     Unfulfilled,
     Rejected,
 }
@@ -225,15 +231,34 @@ where
                             side: order.side,
                         });
 
-                        OrderBookResponse::Filled
+                        OrderBookResponse::Filled(vec![Fill {
+                            price: order.price,
+                            quantity: order_request.order.quantity,
+                        }])
                     } else if order_request.order.quantity > order.quantity {
                         // Else, this request can only be partially fulfilled.
-                        // @TODO(vy): add order request to orderbook
-                        OrderBookResponse::PartiallyFilled
+                        // 1. Remove this order from the orderbook and mark it as filled.
+                        // 2. Search for other orders that we can match at other prices.
+                        // 3. If we cannot fulfill the rest of the OrderRequest, add it to the orderbook.
+
+                        /* We could do this recursively..
+                         * - alter order request each attempt to match
+                         * - pass along fill price/qty if there was any from the previous matches
+                         * - keep matching until order request can be Filled.
+                         * - If no more orders, return as Unfulfilled, or PartiallyFilled.
+                         */
+                        OrderBookResponse::PartiallyFilled(vec![Fill {
+                            price: order.price,
+                            quantity: order.quantity,
+                        }])
                     } else {
                         // Or, this request can be perfectly matched to an order.
                         order_queue.pop();
-                        OrderBookResponse::Filled
+
+                        OrderBookResponse::Filled(vec![Fill {
+                            price: order.price,
+                            quantity: order_request.order.quantity,
+                        }])
                     }
                 } else {
                     request_queue.insert(order_request);
