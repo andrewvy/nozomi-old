@@ -27,6 +27,14 @@ where
     pub side: Side,
 }
 
+/// Order that has no Symbol, therefore is implied what the order is about.
+#[derive(Debug, Copy, Clone)]
+pub struct ImpliedOrder {
+    pub price: u64,
+    pub quantity: u64,
+    pub side: Side,
+}
+
 #[derive(Serialize, Deserialize, Copy, Clone, Debug)]
 pub struct OrderRequest<Symbol>
 where

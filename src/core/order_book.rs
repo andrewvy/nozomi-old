@@ -2,7 +2,7 @@ use std::cmp::Ordering;
 use std::collections::{BinaryHeap, HashMap};
 use std::time::SystemTime;
 
-use crate::core::orders::{Order, OrderRequest, OrderType, Side};
+use crate::core::orders::{ImpliedOrder, Order, OrderRequest, OrderType, Side};
 
 #[derive(Clone)]
 struct OrderIndex {
@@ -143,6 +143,19 @@ where
         }
     }
 
+    pub fn into_vec(&self) -> Vec<ImpliedOrder> {
+        self.index_queue
+            .iter()
+            .map(|key| self.orders.get(&key.id))
+            .filter(|v| v.is_some())
+            .map(|order| ImpliedOrder {
+                price: order.unwrap().price,
+                quantity: order.unwrap().quantity,
+                side: self.order_side,
+            })
+            .collect()
+    }
+
     /// Gets the highest priority order id from the queue, `None` if the queue is empty.
     fn get_best_order_id(&self) -> Option<u64> {
         match self.index_queue.peek() {
@@ -277,5 +290,11 @@ where
         let ask = self.ask_queue.peek()?.price;
 
         Some((bid, ask))
+    }
+
+    pub fn dump(&self) -> (Vec<ImpliedOrder>, Vec<ImpliedOrder>) {
+        // @TODO(vy): combine orders with the same price
+        // Since this is an ordered queue, if previous was same price, add to same ImpliedOrder instead
+        (self.bid_queue.into_vec(), self.ask_queue.into_vec())
     }
 }

@@ -29,6 +29,7 @@ impl OrderBookActor {
 
     fn log_current_spread(mut self) -> ActorResult<Self> {
         dbg!(self.order_book.current_spread());
+        dbg!(self.order_book.dump());
 
         Ok(Status::done(self))
     }
